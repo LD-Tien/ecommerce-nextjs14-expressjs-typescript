@@ -1,19 +1,7 @@
-import { Router } from "express";
-import conn from "../configs/db";
+import { Router } from 'express';
+import apiV1 from './apis/v1';
 
-const router = Router();
+const api = Router()
+  .use(apiV1)
 
-router.get("/test", async (req, res) => {
-  try {
-    conn.query('SELECT 1 + 1 AS `test`;', (_err, rows) => {
-      res.json({
-        message: "test api",
-        data: rows
-      });
-    });
-  } catch (err) {
-    console.log(err);
-  }
-});
-
-export default router;
+export default Router().use('/api/', api);
