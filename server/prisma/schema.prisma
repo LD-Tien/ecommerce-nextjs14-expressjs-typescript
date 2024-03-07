@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,4 +5,190 @@ generator client {
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
+}
+
+model address {
+  id            Int            @id @default(autoincrement())
+  unit_number   String?        @db.VarChar(20)
+  street_number String?        @db.VarChar(20)
+  address_line1 String?        @db.VarChar(500)
+  address_line2 String?        @db.VarChar(500)
+  city          String?        @db.VarChar(200)
+  region        String?        @db.VarChar(200)
+  postal_code   String?        @db.VarChar(20)
+  country_id    Int?
+  country       country?       @relation(fields: [country_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "address_ibfk_1")
+  user_address  user_address[]
+
+  @@index([country_id], map: "country_id")
+}
+
+model cart_item {
+  id              Int           @id @default(autoincrement())
+  user_id         Int?
+  product_item_id Int?
+  qty             Int?
+  product_item    product_item? @relation(fields: [product_item_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "cart_item_ibfk_1")
+  user            user?         @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "cart_item_ibfk_2")
+
+  @@index([product_item_id], map: "product_item_id")
+  @@index([user_id], map: "user_id")
+}
+
+model category {
+  id                 Int                  @id @default(autoincrement())
+  name               String?              @db.VarChar(200)
+  parent_category_id Int?
+  category           category?            @relation("categoryTocategory", fields: [parent_category_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "category_ibfk_1")
+  other_category     category[]           @relation("categoryTocategory")
+  product            product[]
+  promotion_category promotion_category[]
+  variation          variation[]
+
+  @@index([parent_category_id], map: "parent_category_id")
+}
+
+model country {
+  id           Int       @id @default(autoincrement())
+  country_name String?   @db.VarChar(500)
+  address      address[]
+}
+
+model permission {
+  id              Int               @id @default(autoincrement())
+  name            String            @db.VarChar(100)
+  description     String?           @db.Text
+  method          String            @db.VarChar(10)
+  api             String            @db.VarChar(500)
+  module          String            @db.VarChar(200)
+  active          Boolean
+  role_permission role_permission[]
+}
+
+model product {
+  id            Int            @id @default(autoincrement())
+  category_id   Int?
+  name          String?        @db.VarChar(500)
+  description   String?        @db.VarChar(4000)
+  product_image String?        @db.VarChar(1000)
+  category      category?      @relation(fields: [category_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "product_ibfk_1")
+  product_item  product_item[]
+
+  @@index([category_id], map: "category_id")
+}
+
+model product_configuration {
+  product_item_id     Int
+  variation_option_id Int
+  product_item        product_item     @relation(fields: [product_item_id], references: [id], onUpdate: Restrict, map: "product_configuration_ibfk_1")
+  variation_option    variation_option @relation(fields: [variation_option_id], references: [id], onUpdate: Restrict, map: "product_configuration_ibfk_2")
+
+  @@id([product_item_id, variation_option_id])
+  @@index([variation_option_id], map: "variation_option_id")
+}
+
+model product_item {
+  id                    Int                     @id @default(autoincrement())
+  product_id            Int?
+  sku                   String?                 @db.VarChar(20)
+  qty_in_stock          Int?
+  product_image         String?                 @db.VarChar(1000)
+  price                 Int?
+  cart_item             cart_item[]
+  product_configuration product_configuration[]
+  product               product?                @relation(fields: [product_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "product_item_ibfk_1")
+
+  @@index([product_id], map: "product_id")
+}
+
+model promotion {
+  id                 Int                  @id @default(autoincrement())
+  name               String?              @db.VarChar(200)
+  description        String?              @db.VarChar(2000)
+  discount_rate      Int?
+  start_date         DateTime?            @db.DateTime(0)
+  end_date           DateTime?            @db.DateTime(0)
+  promotion_category promotion_category[]
+}
+
+model promotion_category {
+  category_id  Int
+  promotion_id Int
+  promotion    promotion @relation(fields: [promotion_id], references: [id], onUpdate: Restrict, map: "promotion_category_ibfk_1")
+  category     category  @relation(fields: [category_id], references: [id], onUpdate: Restrict, map: "promotion_category_ibfk_2")
+
+  @@id([category_id, promotion_id])
+  @@index([promotion_id], map: "promotion_id")
+}
+
+model review {
+  id                 Int     @id @default(autoincrement())
+  user_id            Int?
+  ordered_product_id Int?
+  rating_value       Int?
+  comment            String? @db.VarChar(2000)
+  user               user?   @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "review_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model role {
+  id              Int               @id @default(autoincrement())
+  name            String?           @db.VarChar(50)
+  active          Boolean?
+  role_permission role_permission[]
+  user            user[]
+}
+
+model role_permission {
+  role_id       Int
+  permission_id Int
+  role          role       @relation(fields: [role_id], references: [id], onUpdate: Cascade, onDelete: Cascade, map: "role_permission_ibfk_1")
+  permission    permission @relation(fields: [permission_id], references: [id], onUpdate: Cascade, onDelete: Cascade, map: "role_permission_ibfk_2")
+
+  @@id([role_id, permission_id])
+  @@index([permission_id], map: "permission_id")
+}
+
+model user {
+  id           Int            @id @default(autoincrement())
+  email        String?        @db.VarChar(350)
+  phone_number String?        @db.VarChar(20)
+  password     String?        @db.VarChar(500)
+  role_id      Int?
+  cart_item    cart_item[]
+  review       review[]
+  role         role?          @relation(fields: [role_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "user_ibfk_1")
+  user_address user_address[]
+
+  @@index([role_id], map: "role_id")
+}
+
+model user_address {
+  user_id    Int
+  address_id Int
+  is_default Boolean?
+  user       user     @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "user_address_ibfk_1")
+  address    address  @relation(fields: [address_id], references: [id], onUpdate: Restrict, map: "user_address_ibfk_2")
+
+  @@id([user_id, address_id])
+  @@index([address_id], map: "address_id")
+}
+
+model variation {
+  id               Int               @id @default(autoincrement())
+  category_id      Int?
+  name             String?           @db.VarChar(500)
+  category         category?         @relation(fields: [category_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "variation_ibfk_1")
+  variation_option variation_option?
+
+  @@index([category_id], map: "category_id")
+}
+
+model variation_option {
+  id                    Int                     @id @default(autoincrement())
+  variation_id          Int?
+  value                 String?                 @db.VarChar(200)
+  product_configuration product_configuration[]
+  variation             variation               @relation(fields: [id], references: [id], onUpdate: Restrict, map: "variation_option_ibfk_1")
 }
