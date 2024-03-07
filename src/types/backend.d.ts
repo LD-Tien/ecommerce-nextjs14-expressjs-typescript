@@ -36,6 +36,7 @@ export interface IRole {
     id: number
     name: string
     active: boolean
+    description?: string
 
     role_permission?: { role_id: number; permission_id: number }
 }
